@@ -1,6 +1,7 @@
-from mcp.server.fastmcp import FastMCP
 import httpx
+
 from ddgs import DDGS  # Clean import from the new package name
+from mcp.server.fastmcp import FastMCP
 
 # Initialize FastMCP server
 mcp = FastMCP("DuckDuckGo-Search-Server", host="0.0.0.0", port=8080)

@@ -1,10 +1,12 @@
-import ipaddress
-import socket
-from urllib.parse import urljoin, urlparse
-from urllib.robotparser import RobotFileParser
-from bs4 import BeautifulSoup
-import html2text
 import httpx
+import socket
+import html2text
+import ipaddress
+
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+from urllib.parse import urlparse
+from urllib.robotparser import RobotFileParser
 from mcp.server.fastmcp import FastMCP
 
 # Initialize FastMCP server (container-internal SSE port 8080)

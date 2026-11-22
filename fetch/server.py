@@ -1,5 +1,6 @@
-from mcp.server.fastmcp import FastMCP
 import httpx
+
+from mcp.server.fastmcp import FastMCP
 
 # Initialize FastMCP server
 mcp = FastMCP("Fetch-SSE-Server", host="0.0.0.0", port=8080)

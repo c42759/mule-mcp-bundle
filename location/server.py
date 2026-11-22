@@ -1,8 +1,10 @@
-import ipaddress
-import math
 import os
-from typing import Callable, Awaitable
+import math
 import httpx
+import ipaddress
+
+from typing import Callable
+from typing import Awaitable
 from mcp.server.fastmcp import FastMCP
 
 # Initialize FastMCP server (container-internal SSE port 8080)

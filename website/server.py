@@ -66,13 +66,20 @@ async def scrape_website(
     max_length: int = 20000,
 ) -> str:
     """
-    Scrape a website URL, extract page metadata, strip scripts/styles, and convert content to clean Markdown.
+    Fetch a public webpage, extract its title and meta description, strip scripts/styles/forms/iframes,
+    and convert the content into clean Markdown. Non-HTML responses (e.g., text/plain, application/json)
+    are returned directly. Blocks localhost, loopback, link-local, and multicast addresses.
+
+    Use this as the primary tool for reading articles, documentation, or webpages in an LLM-friendly
+    format. Set `include_links=False` to reduce noise when you only need prose, or raise `max_length`
+    for long pages. To discover subpages on a site first, use `extract_website_links`.
+
     Args:
-        url: The http/https URL of the webpage to scrape.
-        include_links: Preserve hyperlinks in the Markdown output.
-        include_images: Preserve image references in the Markdown output.
-        respect_robots: Check robots.txt before scraping (default True).
-        max_length: Maximum character length of returned Markdown content (default 20000).
+        url: Public http:// or https:// URL of the webpage to scrape (e.g., "https://example.com/docs/guide").
+        include_links: Preserve hyperlinks in the Markdown output (default True).
+        include_images: Preserve image references in the Markdown output (default False).
+        respect_robots: Check the site's robots.txt before fetching (default True).
+        max_length: Maximum character length of returned content, clamped to [1000, 100000] (default 20000).
     """
     try:
         target_url = validate_public_url(url)
@@ -128,10 +135,16 @@ async def scrape_website(
 @mcp.tool()
 async def extract_website_links(url: str, same_domain_only: bool = False) -> str:
     """
-    Extract and list hyperlinks from a webpage URL.
+    Fetch a public webpage and extract up to 100 unique http/https hyperlinks as a numbered Markdown list.
+    Relative links are resolved to absolute URLs, and anchor (#), javascript:, mailto:, and tel: links
+    are skipped. Blocks localhost, loopback, link-local, and multicast addresses.
+
+    Use this to discover navigation targets, subpages, or outbound references on a site before calling
+    `scrape_website` on specific URLs. Set `same_domain_only=True` when exploring within a single site.
+
     Args:
-        url: The http/https URL of the webpage to inspect.
-        same_domain_only: Only return links belonging to the same domain as the source URL.
+        url: Public http:// or https:// URL of the webpage to inspect (e.g., "https://example.com/docs").
+        same_domain_only: If True, return only links matching the source URL's hostname (default False).
     """
     try:
         target_url = validate_public_url(url)

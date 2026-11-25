@@ -356,17 +356,28 @@ async def store_fact(
     folder_uuid: str = "default",
 ) -> str:
     """
-    ALWAYS invoke this tool IMMEDIATELY whenever the user shares ANY personal information
-    (name, birthday, age, family, spouse, kids, routines, opinions), professional details
-    (job, company, side hustle, projects, SaaS products), hardware/software specs, or preferences.
-    You can call `store_fact` multiple times in a single turn to store multiple facts.
-    NEVER tell the user you stored, saved, registered, or updated your memory without calling this tool.
+    Store or update a structured (entity, relation, value) fact in the isolated JSON knowledge graph
+    for `folder_uuid`.
+
+    Normalizes `entity` (case-insensitive key) and `relation` (snake_case key), overwriting any
+    existing value for the same (entity, relation) pair while preserving the entity's display
+    capitalization.
+
+    When to apply:
+    - Invoke IMMEDIATELY whenever the user shares personal details (name, birthday, age, family,
+      routines, preferences), professional details (job, company, projects), or hardware/software specs.
+    - Call `store_fact` multiple times in a single turn if multiple distinct facts are shared, keeping
+      each fact atomic (one attribute per `relation`).
+    - NEVER tell the user you stored, saved, registered, or updated memory without calling this tool.
 
     Args:
-        entity: The central subject or noun (e.g., "User", "Carlos", "One:Shift", "PC Build").
-        relation: The attribute or relationship (e.g., "full_name", "birthday", "profession", "wife", "kids", "current_saas_project").
-        value: The concrete fact or value to store (e.g., "Carlos Miguel Pereira dos Santos", "28/10/1991", "OneStack").
-        folder_uuid: Automatically injected workspace Folder UUID isolating memory scope.
+        entity: Central subject or noun (e.g., "User", "Alex Rivera", "Project Atlas", "Workstation").
+        relation: Snake-case attribute or relationship (e.g., "full_name", "birthday", "profession",
+            "preferred_editor", "current_project", "gpu").
+        value: Concrete fact or value to store (e.g., "Alex Jordan Rivera", "1990-05-14",
+            "Backend Engineer", "Neovim", "Project Atlas", "RTX 4070").
+        folder_uuid: Workspace folder UUID isolating memory scope (default "default" for global memory;
+            typically injected automatically by the host client).
     """
     try:
         display_name = " ".join((entity or "").strip().split())
@@ -419,13 +430,23 @@ async def recall_facts(
     folder_uuid: str = "default",
 ) -> str:
     """
-    ALWAYS invoke this tool FIRST when the user asks about their personal facts, hardware/PC specs,
-    preferences, project details, or any information from previous conversations that is not present
-    in the current chat history. Do NOT say you don't know or lack access without calling this tool first.
+    Search the scoped knowledge graph for facts matching `query` (or list all facts in scope).
+
+    Reads merged memory for `folder_uuid` (inheriting global facts from "default" and overlaying
+    folder-specific facts with higher priority) and ranks results using keyword, token, and fuzzy
+    similarity scoring. Passing "all", "*", or an empty string returns all facts in scope; if a
+    specific query yields no direct keyword hit, all scoped facts are returned as a fallback.
+
+    When to apply:
+    - Invoke FIRST whenever the user asks about personal facts, hardware/software specs, preferences,
+      project details, or information from past conversations not present in the current chat history.
+    - Do NOT say you don't know or lack access without calling this tool first.
 
     Args:
-        query: Keyword, entity name, topic, or question to search in memory (e.g., "PC Specs", "database", "all"). Pass "all" to retrieve all stored facts in this workspace.
-        folder_uuid: Automatically injected workspace Folder UUID isolating memory scope.
+        query: Keyword, entity name, topic, or question to search (e.g., "Workstation",
+            "preferred_editor", "Project Atlas", "all"). Pass "all" to retrieve every stored fact.
+        folder_uuid: Workspace folder UUID isolating memory scope (default "default"; typically
+            injected automatically by the host client).
     """
     try:
         with _FILE_LOCK:
@@ -493,13 +514,23 @@ async def delete_fact(
     folder_uuid: str = "default",
 ) -> str:
     """
-    Curate workspace memory by removing an outdated, duplicate, or incorrect fact (or entire entity)
-    from `memory.json` and archiving it to `trash.json` (or `trash_[timestamp].json` on conflict).
+    Remove an outdated, duplicate, or incorrect fact (or an entire entity) from the workspace's
+    `memory.json` and archive it to `trash.json` (or `trash_<timestamp>.json` on conflict).
+
+    Note: Facts inherited from global "default" memory are read-only inside specific folder scopes
+    and can only be deleted when `folder_uuid="default"`. To update an existing relation with a new
+    value, prefer calling `store_fact` directly (which overwrites in place).
+
+    When to apply:
+    - Use when the user explicitly asks to forget something, or when curating stale/contradictory
+      entries discovered via `recall_facts`.
 
     Args:
-        entity: The entity name to curate or remove (e.g., "PC Build", "User").
-        relation: Specific relation key to remove (e.g., "gpu", "birthday"). Leave empty or pass "*" / "all" to remove the entire entity and all its relations.
-        folder_uuid: Automatically injected workspace Folder UUID isolating memory scope.
+        entity: Entity name to curate or remove (e.g., "Workstation", "User", "Project Atlas").
+        relation: Specific relation key to remove (e.g., "gpu", "preferred_editor"). Leave empty or
+            pass "*" / "all" to remove the entire entity and all of its relations.
+        folder_uuid: Workspace folder UUID isolating memory scope (default "default"; typically
+            injected automatically by the host client).
     """
     try:
         entity_key = normalize_entity_key(entity)

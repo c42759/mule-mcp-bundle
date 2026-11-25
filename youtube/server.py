@@ -121,11 +121,22 @@ async def get_youtube_transcript(
     include_timestamps: bool = False,
 ) -> str:
     """
-    Fetch the transcript/captions and metadata of a YouTube video from its URL or video ID.
+    Fetch the metadata (title, channel, URL) and full caption/subtitle transcript of a YouTube video.
+
+    Supports standard watch URLs, youtu.be short links, /shorts/, /embed/, /v/, /live/ URLs, or raw
+    11-character video IDs. Falls back to any available transcript language if none of the preferred
+    languages are found.
+
+    Use this when you need to read, summarize, or analyze the full spoken content of a video. Set
+    `include_timestamps=True` when citing specific moments. For long videos where you only need to
+    locate a specific topic, prefer `query_youtube_transcript` to save context.
+
     Args:
-        url_or_id: Full YouTube URL (watch, youtu.be, shorts, embed) or 11-char video ID.
-        languages: Comma-separated preferred language codes (e.g. 'en,es,pt'). Falls back to available language.
-        include_timestamps: Whether to prefix each transcript line with [MM:SS] timestamps.
+        url_or_id: Full YouTube URL (e.g., "https://www.youtube.com/watch?v=abc123XYZ99",
+            "https://youtu.be/abc123XYZ99") or 11-character video ID (e.g., "abc123XYZ99").
+        languages: Comma-separated preferred ISO language codes in priority order (e.g., "en,es,pt").
+            Defaults to "en".
+        include_timestamps: Prefix each line with [MM:SS] or [HH:MM:SS] timestamps when True (default False).
     """
     try:
         video_id = extract_video_id(url_or_id)
@@ -166,12 +177,20 @@ async def query_youtube_transcript(
     context_window: int = 2,
 ) -> str:
     """
-    Search a YouTube video's transcript for specific keywords or phrases and return matching timestamped excerpts.
+    Search a YouTube video's transcript for a keyword or phrase (case-insensitive) and return up to 25
+    matching timestamped excerpts with surrounding context segments.
+
+    If `query` is empty, returns the full timestamped transcript. If no exact substring match is found,
+    returns a preview of the beginning of the transcript. Use this when asked where a topic is discussed
+    in a video or to inspect specific parts of a long video without loading the entire transcript.
+
     Args:
-        url_or_id: Full YouTube URL or 11-char video ID.
-        query: Keyword or phrase to search inside the transcript.
-        languages: Comma-separated preferred language codes (e.g. 'en,es,pt').
-        context_window: Number of surrounding transcript segments to include before and after each match.
+        url_or_id: Full YouTube URL or 11-character video ID (e.g., "abc123XYZ99").
+        query: Keyword or phrase to search inside the transcript (e.g., "database migration", "pricing").
+        languages: Comma-separated preferred ISO language codes in priority order (e.g., "en,es,pt").
+            Defaults to "en".
+        context_window: Number of transcript segments before and after each match to include, clamped
+            between 0 and 10 (default 2).
     """
     try:
         video_id = extract_video_id(url_or_id)

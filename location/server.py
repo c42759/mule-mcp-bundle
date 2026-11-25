@@ -219,10 +219,19 @@ def _format_location_response(loc: dict) -> str:
 @mcp.tool()
 async def get_current_location(ip_address: str = "") -> str:
     """
-    Find the current geographic location (city, region, country, postal code, coordinates, timezone, and public IP).
-    Leave ip_address empty to detect the server/user's current public location automatically, or pass a public IPv4/IPv6 address to locate that IP.
+    Resolve geographic location (city, region, country, postal code, coordinates, timezone, public IP,
+    and ISP) for the current host or a given public IP address.
+
+    Uses a configured environment override (when auto-detecting) or queries multiple GeoIP providers
+    with automatic fallback. Private/loopback IPs or aliases ("auto", "self", "me", "current",
+    "localhost") trigger auto-detection of the current public location.
+
+    Use this when asked "where am I?", when you need the user's city/timezone (e.g., before calling
+    `get_current_weather`), or to geolocate a public IPv4/IPv6 address.
+
     Args:
-        ip_address: Optional public IPv4/IPv6 address (leave empty or 'auto' for current location).
+        ip_address: Optional public IPv4 or IPv6 address (e.g., "198.51.100.42"). Leave empty or pass
+            "auto" to detect the current public location.
     """
     try:
         target_ip = normalize_target_ip(ip_address)
@@ -264,10 +273,15 @@ def _validate_coordinates(latitude: float, longitude: float) -> tuple[float, flo
 @mcp.tool()
 async def reverse_geocode(latitude: float, longitude: float) -> str:
     """
-    Convert geographic coordinates (latitude and longitude) into a street address, city, region, postal code, and country.
+    Convert decimal geographic coordinates (latitude and longitude) into a street address, neighborhood,
+    city/town, state/region, postal code, and country via OpenStreetMap Nominatim.
+
+    Use this when you have coordinates (e.g., from `get_current_location`, `search_location`, or user
+    input) and need the corresponding human-readable address or place name.
+
     Args:
-        latitude: Latitude in decimal degrees (-90 to 90).
-        longitude: Longitude in decimal degrees (-180 to 180).
+        latitude: Latitude in decimal degrees, valid range [-90, 90] (e.g., 40.7128).
+        longitude: Longitude in decimal degrees, valid range [-180, 180] (e.g., -74.0060).
     """
     try:
         lat, lon = _validate_coordinates(latitude, longitude)
@@ -333,10 +347,17 @@ async def reverse_geocode(latitude: float, longitude: float) -> str:
 @mcp.tool()
 async def search_location(query: str, count: int = 5) -> str:
     """
-    Search for a city, town, address, or landmark by name and return matching geographic coordinates, region, country, and timezone.
+    Search for a city, town, street address, or landmark by name and return matching geographic
+    coordinates (plus timezone and elevation when available).
+
+    Queries Open-Meteo Geocoding first for cities/towns and falls back to OpenStreetMap Nominatim for
+    street addresses and landmarks. Use this when you need coordinates, timezone, or disambiguation
+    for a named place.
+
     Args:
-        query: Place name, city, or address query (e.g. 'Kyoto', 'Eiffel Tower', 'Austin, TX').
-        count: Maximum number of matches to return (1 to 10, default 5).
+        query: Place name, city, landmark, or street address (e.g., "Springfield, IL",
+            "123 Main St, Example City", "Central Park").
+        count: Maximum number of matches to return, clamped between 1 and 10 (default 5).
     """
     q_clean = (query or "").strip()
     if not q_clean:

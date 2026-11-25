@@ -88,28 +88,48 @@ def _resolve_safe_path(directory: str) -> Path | None:
 
 @mcp.tool()
 def get_hardware_info() -> str:
-    """Get structured host hardware, OS, kernel, CPU, GPU, and memory info via fastfetch (JSON)."""
+    """
+    Retrieve structured host hardware, OS, kernel, CPU, GPU, and memory information via `fastfetch --format json`.
+
+    Use this when asked about the host machine's specs, operating system, kernel version, CPU/GPU model,
+    or RAM capacity. Output is truncated at 15,000 characters if oversized.
+    """
     return _run_cmd(["fastfetch", "--format", "json"])
 
 
 @mcp.tool()
 def get_storage_info() -> str:
-    """List host block devices, partitions, filesystems, sizes, and mount points via lsblk (JSON)."""
+    """
+    List host block devices, partitions, filesystems, labels, sizes, usage percentages, available space,
+    and mount points via `lsblk -J --fs`.
+
+    Use this when checking disk space, partition layout, mounted drives, or filesystem types.
+    """
     return _run_cmd(["lsblk", "-J", "--fs", "-o", "NAME,SIZE,TYPE,FSTYPE,LABEL,FSUSE%,FSAVAIL,MOUNTPOINTS"])
 
 
 @mcp.tool()
 def get_sensors() -> str:
-    """Read live host hardware temperatures, voltages, and fan speeds via lm-sensors (JSON)."""
+    """
+    Read live host hardware temperatures, voltages, and fan speeds via `sensors -j` (lm-sensors).
+
+    Use this when diagnosing overheating, thermal throttling, fan behavior, or hardware sensor status.
+    """
     return _run_cmd(["sensors", "-j"])
 
 
 @mcp.tool()
 def check_systemd_services(unit: str = "") -> str:
     """
-    Check host systemd services.
+    Check host systemd service status.
+
+    When `unit` is empty, lists all currently failed units (`systemctl list-units --failed`).
+    When `unit` is provided, returns `systemctl status` for that specific unit. Call with no arguments
+    first to spot failing services, then follow up with `get_service_logs` if a unit needs debugging.
+
     Args:
-        unit: Optional unit name (e.g. 'docker.service'). Leave empty to list all failed services.
+        unit: Optional systemd unit name (alphanumeric and `@_.:-` only; e.g., "nginx.service",
+            "postgresql@16-main.service"). Leave empty to list all failed services.
     """
     unit = (unit or "").strip()
     if not unit:
@@ -124,10 +144,14 @@ def check_systemd_services(unit: str = "") -> str:
 @mcp.tool()
 def get_service_logs(unit: str, lines: int = 50) -> str:
     """
-    Fetch recent host journalctl logs for a specific systemd unit.
+    Fetch recent host `journalctl` log lines for a specific systemd unit.
+
+    Use this after `check_systemd_services` or when investigating errors, crashes, or startup issues
+    for a known systemd service.
+
     Args:
-        unit: Systemd unit name (e.g. 'docker.service').
-        lines: Number of most recent log lines to return (1 to 200, default 50).
+        unit: Required systemd unit name (alphanumeric and `@_.:-` only; e.g., "nginx.service", "sshd.service").
+        lines: Number of most recent log lines to return, clamped between 1 and 200 (default 50).
     """
     unit = (unit or "").strip()
     if err := _validate_unit(unit):
@@ -146,11 +170,19 @@ def get_service_logs(unit: str, lines: int = 50) -> str:
 @mcp.tool()
 def search_files(pattern: str, directory: str = "") -> str:
     """
-    Search host file contents using ripgrep within allowed read-only directories.
-    Respects .gitignore, skips binary files, and never searches credential/secret files.
+    Search host file contents using `ripgrep` within configured read-only allowed directories.
+
+    Automatically respects `.gitignore`, skips binary files and files larger than 2 MB, caps results at
+    10 matches per file (15,000 characters total), and excludes credential/secret files (.ssh, .gnupg,
+    .aws, .kube, .env, *.pem, *.key, id_rsa*, etc.).
+
+    Use this to locate code, configuration settings, TODOs, or text occurrences on the host.
+
     Args:
-        pattern: Regex or literal text to search for.
-        directory: Optional sub-directory inside an allowed root (defaults to first allowed root).
+        pattern: Regular expression or literal text to search for (e.g., "Listen 8080", "def main\\(").
+            Cannot be empty.
+        directory: Optional subdirectory inside an allowed search root (e.g., "/host/home/projects/sample-app").
+            Defaults to the first configured allowed root if omitted.
     """
     if not (pattern or "").strip():
         return "Error: Search pattern cannot be empty."

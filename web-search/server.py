@@ -9,8 +9,18 @@ mcp = FastMCP("DuckDuckGo-Search-Server", host="0.0.0.0", port=8080)
 @mcp.tool()
 async def search_ddg(query: str, max_results: int = 5) -> str:
     """
-    Search DuckDuckGo for the given query string.
-    Returns a formatted list of search results including titles, snippets, and URLs.
+    Search the web using DuckDuckGo and return a numbered list of matching pages.
+
+    Use this when you need up-to-date information, want to discover relevant websites, verify facts,
+    or find documentation without having a specific URL yet. Follow up with `fetch_web_page` or
+    `scrape_website` on promising result URLs to read full page content.
+
+    Args:
+        query: Search keywords or natural-language query (e.g., "python asyncio gather example").
+        max_results: Maximum number of search results to return (default 5).
+
+    Returns:
+        Numbered list of results with Title, URL, and Snippet, or a message if no results were found.
     """
     try:
         # Using the context manager from the updated ddgs package
@@ -36,7 +46,19 @@ async def search_ddg(query: str, max_results: int = 5) -> str:
 
 @mcp.tool()
 async def fetch_web_page(url: str) -> str:
-    """Fetch content from a URL and return it as text."""
+    """
+    Perform an HTTP GET request to a URL (following redirects) and return the raw response body as text.
+
+    Use this to retrieve the raw content of a specific URL (such as a URL returned by `search_ddg`,
+    a JSON endpoint, or a plain-text file). Note that HTML pages are returned as raw HTML without
+    Markdown conversion.
+
+    Args:
+        url: Full http:// or https:// URL to fetch (e.g., "https://example.com/docs/overview").
+
+    Returns:
+        Raw response body text, or an error message if the request fails.
+    """
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(url, follow_redirects=True)

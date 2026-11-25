@@ -84,10 +84,18 @@ async def get_current_weather(
     temperature_unit: str = "celsius",
 ) -> str:
     """
-    Get the live current weather conditions for any city or location.
+    Get live current weather conditions for any city, town, or location via Open-Meteo.
+
+    Geocodes the location name and returns the resolved place name, coordinates, weather condition,
+    temperature, feels-like temperature, relative humidity, precipitation, and wind speed.
+    Use this when asked about current or right-now weather. If the user asks about local weather
+    without naming a place, call `get_current_location` first to obtain their city. For upcoming
+    days, use `get_weather_forecast`.
+
     Args:
-        location: The name of the city, town, or location (e.g. 'Tokyo', 'London', 'San Francisco').
-        temperature_unit: Temperature scale to return, either 'celsius' or 'fahrenheit' (default 'celsius').
+        location: Name of the city, town, or location (e.g., "Springfield", "New York", "Lisbon").
+        temperature_unit: Temperature scale: "celsius" (returns °C, km/h, mm) or "fahrenheit"
+            (returns °F, mph, inch). Defaults to "celsius".
     """
     temp_unit = "fahrenheit" if (temperature_unit or "").strip().lower() == "fahrenheit" else "celsius"
     headers = {"User-Agent": USER_AGENT}
@@ -149,11 +157,17 @@ async def get_weather_forecast(
     temperature_unit: str = "celsius",
 ) -> str:
     """
-    Get a multi-day weather forecast for any city or location (up to 7 days).
+    Get a daily multi-day weather forecast (1 to 7 days) for any city, town, or location via Open-Meteo.
+
+    Geocodes the location name and returns daily weather condition, min/max temperatures, total
+    precipitation, and maximum precipitation probability (%). Use this when asked about tomorrow's
+    weather, weekend weather, or an upcoming multi-day forecast. For live current conditions, use
+    `get_current_weather`.
+
     Args:
-        location: The name of the city, town, or location (e.g. 'Paris', 'Berlin').
-        days: Number of forecast days to return (1 to 7, default 3).
-        temperature_unit: Temperature scale to return, either 'celsius' or 'fahrenheit' (default 'celsius').
+        location: Name of the city, town, or location (e.g., "Denver", "Osaka").
+        days: Number of forecast days to return, clamped between 1 and 7 (default 3).
+        temperature_unit: Temperature scale: "celsius" (default) or "fahrenheit".
     """
     temp_unit = "fahrenheit" if (temperature_unit or "").strip().lower() == "fahrenheit" else "celsius"
     num_days = max(1, min(7, int(days)))

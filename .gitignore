@@ -1,3 +1,7 @@
+# Agent & Memory Bank Metadata
+.agents-memory/
+PLAN_*.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

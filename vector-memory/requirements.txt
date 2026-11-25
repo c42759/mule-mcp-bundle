@@ -1,0 +1,7 @@
+mcp<2
+httpx
+uvicorn
+starlette
+sse-starlette
+sqlite-vec
+fastembed
